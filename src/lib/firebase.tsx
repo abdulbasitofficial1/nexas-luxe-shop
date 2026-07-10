@@ -14,7 +14,6 @@ import {
   type User,
 } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
 import { getFirebaseConfig } from "./firebase-config.functions";
 
 interface FirebaseContextValue {
