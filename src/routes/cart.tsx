@@ -139,8 +139,12 @@ interface FormState {
   phone: string;
   address: string;
   payment: string;
+  transactionId: string;
 }
-const empty: FormState = { name: "", phone: "", address: "", payment: "" };
+const empty: FormState = { name: "", phone: "", address: "", payment: "", transactionId: "" };
+
+const needsTxn = (payment: string) =>
+  payment === "EasyPaisa" || payment === "JazzCash";
 
 function CheckoutModal({
   open,
@@ -160,12 +164,17 @@ function CheckoutModal({
     setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
+  const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
+  const grandTotal = total + codFee;
+
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.name.trim()) next.name = "Name is required.";
     if (!form.phone.trim()) next.phone = "Phone number is required.";
     if (!form.address.trim()) next.address = "Address is required.";
     if (!form.payment) next.payment = "Select a payment method.";
+    if (needsTxn(form.payment) && !form.transactionId.trim())
+      next.transactionId = "Transaction ID is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -179,16 +188,21 @@ function CheckoutModal({
     }
     setSubmitting(true);
     try {
+      const txn = needsTxn(form.payment) ? form.transactionId.trim() : "";
+      // COD fee is applied once (to the first order only) for the whole cart.
+      let first = true;
       for (const item of items) {
         await placeOrder(db, {
           customerName: form.name.trim(),
           phoneNumber: form.phone.trim(),
           address: form.address.trim(),
           quantity: item.quantity,
-          paymentMethod: form.payment,
+          paymentMethod: first ? form.payment : `${form.payment} (item)`,
+          transactionId: txn,
           productName: item.name,
           productPrice: item.price,
         });
+        first = false;
       }
       toast.success("Order placed successfully! We'll contact you shortly.");
       clear();
@@ -200,6 +214,7 @@ function CheckoutModal({
       setSubmitting(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
