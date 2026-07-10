@@ -17,6 +17,11 @@ export interface Order {
   address: string;
   quantity: number;
   paymentMethod: string;
+  transactionId: string;
+  codFee: number;
+  subtotal: number;
+  totalAmount: number;
+  paymentVerified: boolean;
   productName: string;
   productPrice: number;
   orderStatus: OrderStatus;
@@ -29,3 +34,15 @@ export interface CartItem extends Product {
 
 export const PAYMENT_METHODS = ["EasyPaisa", "JazzCash", "Cash on Delivery"] as const;
 export const ORDER_STATUSES: OrderStatus[] = ["Pending", "Processing", "Completed"];
+
+/** Delivery/handling fee applied only to Cash on Delivery orders. */
+export const COD_FEE = 60;
+
+/** Payment account numbers shown to customers at checkout. */
+export const PAYMENT_ACCOUNTS: Record<string, string> = {
+  EasyPaisa: "03225305296",
+  JazzCash: "03219965754",
+};
+
+/** Payment methods that require the customer to enter a Transaction ID. */
+export const TXN_PAYMENT_METHODS = ["EasyPaisa", "JazzCash"] as const;

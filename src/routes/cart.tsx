@@ -23,7 +23,7 @@ import {
 import { useCart } from "@/lib/cart-context";
 import { useFirebase } from "@/lib/firebase";
 import { placeOrder } from "@/lib/store";
-import { PAYMENT_METHODS } from "@/lib/types";
+import { COD_FEE, PAYMENT_ACCOUNTS, PAYMENT_METHODS } from "@/lib/types";
 
 export const Route = createFileRoute("/cart")({
   component: Cart,
@@ -139,8 +139,12 @@ interface FormState {
   phone: string;
   address: string;
   payment: string;
+  transactionId: string;
 }
-const empty: FormState = { name: "", phone: "", address: "", payment: "" };
+const empty: FormState = { name: "", phone: "", address: "", payment: "", transactionId: "" };
+
+const needsTxn = (payment: string) =>
+  payment === "EasyPaisa" || payment === "JazzCash";
 
 function CheckoutModal({
   open,
@@ -160,12 +164,17 @@ function CheckoutModal({
     setErrors((e) => ({ ...e, [k]: undefined }));
   };
 
+  const codFee = form.payment === "Cash on Delivery" ? COD_FEE : 0;
+  const grandTotal = total + codFee;
+
   const validate = () => {
     const next: Partial<Record<keyof FormState, string>> = {};
     if (!form.name.trim()) next.name = "Name is required.";
     if (!form.phone.trim()) next.phone = "Phone number is required.";
     if (!form.address.trim()) next.address = "Address is required.";
     if (!form.payment) next.payment = "Select a payment method.";
+    if (needsTxn(form.payment) && !form.transactionId.trim())
+      next.transactionId = "Transaction ID is required.";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -179,6 +188,7 @@ function CheckoutModal({
     }
     setSubmitting(true);
     try {
+      const txn = needsTxn(form.payment) ? form.transactionId.trim() : "";
       for (const item of items) {
         await placeOrder(db, {
           customerName: form.name.trim(),
@@ -186,6 +196,7 @@ function CheckoutModal({
           address: form.address.trim(),
           quantity: item.quantity,
           paymentMethod: form.payment,
+          transactionId: txn,
           productName: item.name,
           productPrice: item.price,
         });
@@ -200,6 +211,7 @@ function CheckoutModal({
       setSubmitting(false);
     }
   };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -241,6 +253,53 @@ function CheckoutModal({
               </SelectContent>
             </Select>
             {errors.payment && <p className="text-xs text-destructive">{errors.payment}</p>}
+          </div>
+
+          {needsTxn(form.payment) && (
+            <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+              <p className="text-sm">
+                {form.payment} Number:{" "}
+                <span className="font-semibold text-primary">{PAYMENT_ACCOUNTS[form.payment]}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Send payment to {PAYMENT_ACCOUNTS[form.payment]} and enter your Transaction ID.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="ck-txn">Transaction ID</Label>
+                <Input
+                  id="ck-txn"
+                  value={form.transactionId}
+                  onChange={(e) => set("transactionId", e.target.value)}
+                  placeholder="e.g. 1234567890"
+                />
+                {errors.transactionId && (
+                  <p className="text-xs text-destructive">{errors.transactionId}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {form.payment === "Cash on Delivery" && (
+            <div className="rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+              Cash on Delivery charges: Rs {COD_FEE}
+            </div>
+          )}
+
+          <div className="space-y-1 rounded-lg border border-border/60 bg-secondary/40 p-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Subtotal</span>
+              <span>Rs {total.toLocaleString()}</span>
+            </div>
+            {codFee > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">COD Fee</span>
+                <span>Rs {codFee.toLocaleString()}</span>
+              </div>
+            )}
+            <div className="flex justify-between border-t border-border/60 pt-1 font-semibold">
+              <span>Total</span>
+              <span className="text-primary">Rs {grandTotal.toLocaleString()}</span>
+            </div>
           </div>
           <Button type="submit" variant="gold" className="w-full" disabled={submitting}>
             {submitting && <Loader2 className="size-4 animate-spin" />}
