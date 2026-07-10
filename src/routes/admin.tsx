@@ -382,31 +382,17 @@ function ProductFormDialog({
   onOpenChange: (o: boolean) => void;
   editing: Product | null;
 }) {
-  const { db, storage } = useFirebase();
+  const { db } = useFirebase();
   const [form, setForm] = useState<ProductInput>(emptyProduct);
   const [saving, setSaving] = useState(false);
   const [initId, setInitId] = useState<string | null>(null);
-
-  // Image handling: choose between pasting a URL or uploading a file.
-  const [mode, setMode] = useState<"url" | "upload">("url");
-  const [file, setFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
-  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [urlOk, setUrlOk] = useState<boolean | null>(null);
-
-  const resetImageState = () => {
-    setMode("url");
-    setFile(null);
-    setFilePreview(null);
-    setUploadPct(null);
-    setUrlOk(null);
-  };
 
   // Sync form when dialog opens or target changes.
   const targetId = editing?.id ?? "new";
   if (open && initId !== targetId) {
     setInitId(targetId);
-    resetImageState();
+    setUrlOk(null);
     setForm(
       editing
         ? {
@@ -421,35 +407,15 @@ function ProductFormDialog({
   }
   if (!open && initId !== null) setInitId(null);
 
-  const onPickFile = (f: File | null) => {
-    setUploadPct(null);
-    if (!f) {
-      setFile(null);
-      setFilePreview(null);
-      return;
-    }
-    if (!ALLOWED_IMAGE_TYPES.includes(f.type as (typeof ALLOWED_IMAGE_TYPES)[number])) {
-      toast.error("Only JPG, JPEG, PNG and WEBP images are supported.");
-      return;
-    }
-    if (f.size > 8 * 1024 * 1024) {
-      toast.error("Image must be smaller than 8MB.");
-      return;
-    }
-    setFile(f);
-    setFilePreview(URL.createObjectURL(f));
-  };
-
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.category.trim() || form.price <= 0) {
       toast.error("Name, price and category are required.");
       return;
     }
-    const hasUrl = mode === "url" && form.image.trim();
-    const hasUpload = mode === "upload" && file;
-    if (!hasUrl && !hasUpload && !form.image.trim()) {
-      toast.error("Provide an image URL or upload an image.");
+    const image = form.image.trim();
+    if (!image) {
+      toast.error("Please provide an image URL.");
       return;
     }
     if (!db) {
@@ -459,26 +425,7 @@ function ProductFormDialog({
 
     setSaving(true);
     try {
-      let finalImage = form.image.trim();
-
-      // Uploaded image takes priority over the URL.
-      if (mode === "upload" && file) {
-        if (!storage) {
-          toast.error("Image storage is not available.");
-          setSaving(false);
-          return;
-        }
-        setUploadPct(0);
-        finalImage = await uploadProductImage(storage, file, setUploadPct);
-      }
-
-      if (!finalImage) {
-        toast.error("Provide an image URL or upload an image.");
-        setSaving(false);
-        return;
-      }
-
-      const payload = { ...form, image: finalImage };
+      const payload = { ...form, image };
       if (editing) {
         await updateProduct(db, editing.id, payload);
         toast.success("Product updated");
@@ -488,19 +435,14 @@ function ProductFormDialog({
       }
       onOpenChange(false);
     } catch (err) {
-      toast.error(
-        mode === "upload"
-          ? "Image upload failed. Please try again."
-          : "Failed to save product",
-      );
+      toast.error("Failed to save product");
       console.error(err);
     } finally {
       setSaving(false);
-      setUploadPct(null);
     }
   };
 
-  const previewSrc = mode === "upload" ? filePreview : form.image.trim() || null;
+  const previewSrc = form.image.trim() || null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -534,76 +476,28 @@ function ProductFormDialog({
             <Textarea id="p-desc" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
           </div>
 
-          {/* Product image: URL or upload */}
-          <div className="space-y-2 rounded-xl border border-border/60 bg-card/40 p-3">
-            <Label>Product Image</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={mode === "url" ? "gold" : "goldOutline"}
-                size="sm"
-                onClick={() => setMode("url")}
-              >
-                <ImageIcon className="size-4" /> Image URL
-              </Button>
-              <Button
-                type="button"
-                variant={mode === "upload" ? "gold" : "goldOutline"}
-                size="sm"
-                onClick={() => setMode("upload")}
-              >
-                <Upload className="size-4" /> Upload Image
-              </Button>
-            </div>
-
-            {mode === "url" ? (
-              <div className="space-y-1.5">
-                <Input
-                  value={form.image}
-                  onChange={(e) => {
-                    setForm({ ...form, image: e.target.value });
-                    setUrlOk(null);
-                  }}
-                  placeholder="https://..."
-                />
-                {form.image.trim() && urlOk === false && (
-                  <p className="text-xs text-destructive">
-                    This image URL could not be loaded. Try uploading the image instead.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <Input
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  JPG, JPEG, PNG or WEBP — great for Markaz images that don&apos;t load by URL.
-                </p>
-                {uploadPct !== null && (
-                  <div className="space-y-1">
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full bg-primary transition-all"
-                        style={{ width: `${uploadPct}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">Uploading… {uploadPct}%</p>
-                  </div>
-                )}
-              </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="p-img">Image URL</Label>
+            <Input
+              id="p-img"
+              value={form.image}
+              onChange={(e) => {
+                setForm({ ...form, image: e.target.value });
+                setUrlOk(null);
+              }}
+              placeholder="https://..."
+            />
+            {form.image.trim() && urlOk === false && (
+              <p className="text-xs text-destructive">This image URL could not be loaded.</p>
             )}
-
             {previewSrc && (
               <div className="mt-2 overflow-hidden rounded-lg border border-border/60">
                 <img
                   src={previewSrc}
                   alt="Preview"
                   className="h-40 w-full object-cover"
-                  onLoad={() => mode === "url" && setUrlOk(true)}
-                  onError={() => mode === "url" && setUrlOk(false)}
+                  onLoad={() => setUrlOk(true)}
+                  onError={() => setUrlOk(false)}
                 />
               </div>
             )}
@@ -611,11 +505,7 @@ function ProductFormDialog({
 
           <Button type="submit" variant="gold" className="w-full" disabled={saving}>
             {saving && <Loader2 className="size-4 animate-spin" />}
-            {saving && uploadPct !== null
-              ? "Uploading…"
-              : editing
-                ? "Save Changes"
-                : "Add Product"}
+            {editing ? "Save Changes" : "Add Product"}
           </Button>
         </form>
       </DialogContent>
