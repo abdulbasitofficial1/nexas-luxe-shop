@@ -56,12 +56,13 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
         const app = initializeApp(config);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         unsub = onAuthStateChanged(auth, (user) => {
           setState((prev) => ({ ...prev, user, ready: true }));
         });
 
-        setState((prev) => ({ ...prev, app, auth, db, ready: true }));
+        setState((prev) => ({ ...prev, app, auth, db, storage, ready: true }));
       } catch (err) {
         setState((prev) => ({
           ...prev,
