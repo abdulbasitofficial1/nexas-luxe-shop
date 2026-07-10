@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { Loader2, LogOut, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { ImageIcon, Loader2, LogOut, Pencil, Plus, ShieldAlert, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
