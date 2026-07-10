@@ -182,22 +182,37 @@ function OrdersPanel() {
                 <div>
                   <p className="font-semibold">{o.productName}</p>
                   <p className="text-sm text-muted-foreground">
-                    Rs {o.productPrice.toLocaleString()} × {o.quantity} ={" "}
-                    <span className="text-primary">Rs {(o.productPrice * o.quantity).toLocaleString()}</span>
+                    Rs {o.productPrice.toLocaleString()} × {o.quantity}
                   </p>
                 </div>
-                <Badge variant="outline" className={statusVariant[o.orderStatus]}>
-                  {o.orderStatus}
-                </Badge>
+                <div className="flex flex-col items-end gap-1.5">
+                  <Badge variant="outline" className={statusVariant[o.orderStatus]}>
+                    {o.orderStatus}
+                  </Badge>
+                  <Badge
+                    variant="outline"
+                    className={
+                      o.paymentVerified
+                        ? "border-green-500/30 bg-green-500/15 text-green-400"
+                        : "border-red-500/30 bg-red-500/15 text-red-400"
+                    }
+                  >
+                    {o.paymentVerified ? "Payment Verified" : "Not Verified"}
+                  </Badge>
+                </div>
               </div>
               <div className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                 <p><span className="text-muted-foreground">Customer:</span> {o.customerName}</p>
                 <p><span className="text-muted-foreground">Phone:</span> {o.phoneNumber}</p>
                 <p className="sm:col-span-2"><span className="text-muted-foreground">Address:</span> {o.address}</p>
                 <p><span className="text-muted-foreground">Payment:</span> {o.paymentMethod}</p>
+                <p><span className="text-muted-foreground">Transaction ID:</span> {o.transactionId || "—"}</p>
+                <p><span className="text-muted-foreground">Subtotal:</span> Rs {(o.subtotal ?? o.productPrice * o.quantity).toLocaleString()}</p>
+                <p><span className="text-muted-foreground">COD Fee:</span> Rs {(o.codFee ?? 0).toLocaleString()}</p>
+                <p className="font-medium"><span className="text-muted-foreground font-normal">Total:</span> <span className="text-primary">Rs {(o.totalAmount ?? o.productPrice * o.quantity).toLocaleString()}</span></p>
                 <p><span className="text-muted-foreground">Date:</span> {o.createdAt ? new Date(o.createdAt).toLocaleString() : "—"}</p>
               </div>
-              <div className="mt-3 flex items-center gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <span className="text-sm text-muted-foreground">Update status:</span>
                 <Select
                   value={o.orderStatus}
@@ -220,6 +235,31 @@ function OrdersPanel() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Button
+                  size="sm"
+                  variant={o.paymentVerified ? "outline" : "gold"}
+                  onClick={async () => {
+                    if (!db) return;
+                    try {
+                      await updatePaymentVerified(db, o.id, !o.paymentVerified);
+                      toast.success(
+                        o.paymentVerified ? "Marked as not verified" : "Payment verified",
+                      );
+                    } catch {
+                      toast.error("Failed to update payment status");
+                    }
+                  }}
+                >
+                  {o.paymentVerified ? (
+                    <>
+                      <XCircle className="size-4" /> Mark Not Verified
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="size-4" /> Mark Verified
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           ))}
