@@ -42,12 +42,15 @@ import { useFirebase } from "@/lib/firebase";
 import { useUI } from "@/lib/ui-context";
 import {
   addProduct,
+  approveReview,
   deleteProduct,
+  deleteReview,
   updateOrderStatus,
   updatePaymentVerified,
   updateProduct,
   useOrders,
   useProducts,
+  useReviews,
   type ProductInput,
 } from "@/lib/store";
 import { ORDER_STATUSES, type OrderStatus, type Product } from "@/lib/types";
