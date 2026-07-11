@@ -32,6 +32,15 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface Review {
+  id: string;
+  customerName: string;
+  rating: number;
+  message: string;
+  approved: boolean;
+  createdAt?: number;
+}
+
 export const PAYMENT_METHODS = ["EasyPaisa", "JazzCash", "Cash on Delivery"] as const;
 export const ORDER_STATUSES: OrderStatus[] = ["Pending", "Processing", "Completed"];
 
