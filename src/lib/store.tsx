@@ -20,6 +20,7 @@ import { COD_FEE, type Order, type OrderStatus, type Product, type Review } from
  * composite Firestore index is required. Pass `approvedOnly` for the
  * public storefront; the admin dashboard passes `false` to see everything.
  */
+
 export function useReviews(approvedOnly = true) {
   const { db, ready } = useFirebase();
   const [reviews, setReviews] = useState<Review[]>([]);
