@@ -204,6 +204,13 @@ export interface ProductInput {
   image: string;
   category: string;
   description: string;
+
+  images?: string[];
+
+  options?: {
+    name: string;
+    values: string[];
+  }[];
 }
 
 export async function addProduct(db: Firestore, input: ProductInput) {
