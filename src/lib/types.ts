@@ -9,6 +9,7 @@ export interface Product {
   // Multiple Images
   images?: string[];
 
+  
   // Dynamic Options
   options?: {
     name: string;
