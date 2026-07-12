@@ -17,8 +17,7 @@ import { UIProvider } from "@/lib/ui-context";
 import { Navbar } from "@/components/nexas/Navbar";
 import { Footer } from "@/components/nexas/Footer";
 import { AdminLoginModal } from "@/components/nexas/AdminLoginModal";
-import { Toaster } from "@/components/ui/sonner";
-
+import { Toaster } from "@/components/ui/sonner"
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
